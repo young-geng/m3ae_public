@@ -18,3 +18,4 @@ scikit-image==0.19.2
 gcsfs==2022.02.0
 requests
 typing_extensions==4.2.0
+git+https://github.com/patil-suraj/vqgan-jax.git
