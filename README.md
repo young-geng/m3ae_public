@@ -15,10 +15,20 @@ This implementation has been tested on GPU and Google Cloud TPU and supports mul
 Unliked the original implementation used for the paper, this implementation also supports the following new
 features:
 * Predicting discretized image tokens from VQGAN as output (similar to BEiT).
-* Training on a combination of paired image-text data and unpaired text data.
+* Training on a combination of paired image-text data (e.g. CC12M) and unpaired text data (e.g. Wikipedia).
 
 ## Installation
-Install the dependencies with pip and add this repo directory to your`PYTHONPATH` environment variable.
+If this is on GPU, replace the following lines in `requirements.txt`
+```
+-f https://storage.googleapis.com/jax-releases/libtpu_releases.html
+jax[tpu]==0.3.12
+```
+with
+```
+--f https://storage.googleapis.com/jax-releases/jax_cuda_releases.html
+jax[cuda]==0.3.12
+```
+Install the dependencies with pip and add this repo directory to your `PYTHONPATH` environment variable.
 ```
 pip install requirements.txt
 export PYTHONPATH="$PYTHONPATH:$(pwd)"
@@ -28,7 +38,7 @@ export PYTHONPATH="$PYTHONPATH:$(pwd)"
 ## Running Experiments
 Experiments can be launched via the following commands.
 
-Pre-training MAE (image only model) on CC12M
+Pre-training MAE (image only model) on Conceptual 12M (CC12M)
 ```
 python3 -m m3ae.mae_main \
     --mae.model_type='large' \
@@ -50,7 +60,7 @@ python3 -m m3ae.mae_main \
     --cc12m_data.image_normalization='cc12m'
 ```
 
-Pre-training M3AE (image and text model) on CC12M
+Pre-training M3AE (image and text model) on Conceptual 12M (CC12M)
 ```
 python3 -m m3ae.m3ae_main \
     --m3ae.model_type='large' \
@@ -152,3 +162,6 @@ and [dalle-mini](https://huggingface.co/dalle-mini/vqgan_imagenet_f16_16384).
 * The transformer implementation is heavily inspired by [jax-models](https://github.com/DarshanDeshpande/jax-models).
 
 * Some utilities are borrowed from [JaxCQL](https://github.com/young-geng/JaxCQL).
+
+## Contact
+If you have any questions, please open an issue or contact young.geng@berkeley.edu and hao.liu@berkely.edu.
