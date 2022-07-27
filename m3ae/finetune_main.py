@@ -39,7 +39,6 @@ from .utils import (
 FLAGS_DEF = define_flags_with_default(
     seed=42,
     epochs=90,
-    warmup_epochs=10,
     batch_size=2,
     discretized_image=False,
     image_tokenizer_type='maskgit',
@@ -52,7 +51,7 @@ FLAGS_DEF = define_flags_with_default(
     lr_init_value=0.0,
     lr_end_value=0.0,
     lr_peak_value=1.5e-4,
-    lr_warmup_epochs=0,
+    lr_warmup_epochs=5,
     weight_decay=0.0,
     clip_gradient=1e9,
     mixup_alpha = 0.8,

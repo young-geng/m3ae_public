@@ -500,7 +500,7 @@ class MaskedMultimodalAutoencoder(nn.Module):
         if text is not None:
             text_x = (
                 self.text_embedding(text)
-                + get_1d_sincos_pos_embed(self.config.emb_dim, text.shpae[1])
+                + get_1d_sincos_pos_embed(self.config.emb_dim, text.shape[1])
                 + self.get_type_embedding('encoder_text_type_embedding')
             )
             input_tensors.append(text_x)
