@@ -40,6 +40,7 @@ FLAGS_DEF = define_flags_with_default(
     epochs=200,
     batch_size=0,
     accumulate_grad_steps=1,
+    patch_size=16,
     discretized_image=False,
     image_tokenizer_type='maskgit',
     image_all_token_loss=False,
@@ -71,7 +72,7 @@ def create_train_step(model, learning_rate, encode_image=None, decode_image=None
         rng_generator = JaxRNG(rng)
 
         def loss_fn(params):
-            image_patches = extract_patches(image, 16)
+            image_patches = extract_patches(image, FLAGS.patch_size)
             if FLAGS.discretized_image:
                 encoded_image = encode_image(state.tokenizer_params, image)
 
@@ -120,7 +121,7 @@ def create_train_step(model, learning_rate, encode_image=None, decode_image=None
     def patch_predict_fn(state, rng, image):
         rng_generator = JaxRNG(rng)
 
-        image_patches = extract_patches(image, 16)
+        image_patches = extract_patches(image, FLAGS.patch_size)
         if FLAGS.discretized_image:
             encoded_image = encode_image(state.tokenizer_params, image)
 
@@ -139,9 +140,9 @@ def create_train_step(model, learning_rate, encode_image=None, decode_image=None
                 mask_select(image_mask, encoded_image, image_output)
             )
         else:
-            predicted_image = merge_patches(image_output, 16)
+            predicted_image = merge_patches(image_output, FLAGS.patch_size)
             predicted_image_combined = merge_patches(
-                mask_select(image_mask, image_patches, image_output), 16
+                mask_select(image_mask, image_patches, image_output), FLAGS.patch_size
             )
 
         return image, predicted_image, predicted_image_combined
@@ -194,6 +195,8 @@ def main(argv):
         prefetch_factor=2,
         persistent_workers=True,
     )
+    image_patch_dim = FLAGS.patch_size * FLAGS.patch_size * 3
+    image_sequence_length = (dataset.config.image_size // FLAGS.patch_size) ** 2
 
     if FLAGS.discretized_image:
         tokenizer_params, encode_image, decode_image, image_vocab_size = get_image_tokenizer(
@@ -204,7 +207,7 @@ def main(argv):
         tokenizer_params, encode_image, decode_image, image_vocab_size = (
             None, None, None, -1
         )
-        image_output_dim = 768
+        image_output_dim = image_patch_dim
 
     model = MaskedAutoencoder(
         config_updates=FLAGS.mae,
@@ -238,7 +241,7 @@ def main(argv):
         start_step = checkpoint_data["step"]
         del tokenizer_params
     else:
-        image = jnp.zeros((2, 256, 768), dtype=jnp.float32)
+        image = jnp.zeros((2, image_sequence_length, image_patch_dim), dtype=jnp.float32)
         rngs = next_rng(keys=model.rng_keys())
         params = model.init(rngs, image, deterministic=False)
 

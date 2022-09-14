@@ -39,6 +39,7 @@ FLAGS_DEF = define_flags_with_default(
     epochs=200,
     batch_size=2,
     accumulate_grad_steps=1,
+    patch_size=16,
     discretized_image=False,
     image_tokenizer_type='maskgit',
     image_all_token_loss=False,
@@ -76,7 +77,7 @@ def create_train_step(model, learning_rate, encode_image=None, decode_image=None
         text_padding_mask = batch['text_padding_mask']
 
         def loss_fn(params):
-            image_patches = extract_patches(image, 16)
+            image_patches = extract_patches(image, FLAGS.patch_size)
             if FLAGS.discretized_image:
                 encoded_image = encode_image(state.tokenizer_params, image)
 
@@ -179,7 +180,7 @@ def create_train_step(model, learning_rate, encode_image=None, decode_image=None
         text = batch['text']
         text_padding_mask = batch['text_padding_mask']
 
-        image_patches = extract_patches(image, 16)
+        image_patches = extract_patches(image, FLAGS.patch_size)
         if FLAGS.discretized_image:
             encoded_image = encode_image(state.tokenizer_params, image)
 
@@ -200,9 +201,9 @@ def create_train_step(model, learning_rate, encode_image=None, decode_image=None
                 mask_select(image_mask, encoded_image, image_output)
             )
         else:
-            predicted_image = merge_patches(image_output, 16)
+            predicted_image = merge_patches(image_output, FLAGS.patch_size)
             predicted_image_combined = merge_patches(
-                mask_select(image_mask, image_patches, image_output), 16
+                mask_select(image_mask, image_patches, image_output), FLAGS.patch_size
             )
 
 
@@ -245,6 +246,8 @@ def main(argv):
         prefetch_factor=2,
         persistent_workers=True,
     )
+    image_patch_dim = FLAGS.patch_size * FLAGS.patch_size * 3
+    image_sequence_length = (dataset.config.image_size // FLAGS.patch_size) ** 2
 
     if FLAGS.unpaired_text_loss_weight > 0.0:
         unpaired_text_dataset = TextDataset(FLAGS.unpaired_text_data, jax_process_index / jax_process_count)
@@ -270,7 +273,7 @@ def main(argv):
         tokenizer_params, encode_image, decode_image, image_vocab_size = (
             None, None, None, -1
         )
-        image_output_dim = 768
+        image_output_dim = image_patch_dim
 
     model = MaskedMultimodalAutoencoder(
         config_updates=FLAGS.m3ae,
@@ -304,7 +307,7 @@ def main(argv):
         start_step = checkpoint_data["step"]
         del tokenizer_params
     else:
-        image = jnp.zeros((2, 256, 768), dtype=jnp.float32)
+        image = jnp.zeros((2, image_sequence_length, image_patch_dim), dtype=jnp.float32)
         text = jnp.zeros((2, dataset.config.tokenizer_max_length), dtype=jnp.int32)
         text_padding_mask = jnp.zeros((2, dataset.config.tokenizer_max_length))
         rngs = next_rng(keys=model.rng_keys())

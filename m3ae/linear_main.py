@@ -38,6 +38,7 @@ FLAGS_DEF = define_flags_with_default(
     seed=42,
     epochs=90,
     batch_size=2,
+    patch_size=16,
     discretized_image=False,
     image_tokenizer_type='maskgit',
     global_pool=False,
@@ -74,7 +75,7 @@ def create_train_step(model, backbone, learning_rate):
         rng_generator = JaxRNG(rng)
 
         def loss_fn(params):
-            image_patches = extract_patches(image, 16)
+            image_patches = extract_patches(image, FLAGS.patch_size)
             representation = backbone.apply(
                 state.backbone_params,
                 image_patches,
@@ -106,7 +107,7 @@ def create_train_step(model, backbone, learning_rate):
     def eval_step_fn(state, rng, image, label):
         rng_generator = JaxRNG(rng)
 
-        image_patches = extract_patches(image, 16)
+        image_patches = extract_patches(image, FLAGS.patch_size)
         representation = backbone.apply(
             state.backbone_params,
             image_patches,
@@ -158,6 +159,9 @@ def main(argv):
     train_dataset = ImageNetDataset(FLAGS.train_data, jax_process_index / jax_process_count)
     val_dataset = ImageNetDataset(FLAGS.val_data, jax_process_index / jax_process_count)
 
+    image_patch_dim = FLAGS.patch_size * FLAGS.patch_size * 3
+    image_sequence_length = (train_dataset.config.image_size // FLAGS.patch_size) ** 2
+
     steps_per_epoch = int(len(train_dataset) / FLAGS.batch_size)
     total_steps = steps_per_epoch * FLAGS.epochs
     val_steps = int(len(val_dataset) / FLAGS.batch_size)
@@ -191,7 +195,7 @@ def main(argv):
         tokenizer_params, encode_image, decode_image, image_vocab_size = (
             None, None, None, -1
         )
-        image_output_dim = 768
+        image_output_dim = image_patch_dim
 
     backbone = MaskedAutoencoder(
         config_updates=FLAGS.mae,
@@ -200,7 +204,7 @@ def main(argv):
 
     backbone_params = backbone.init(
         next_rng(keys=backbone.rng_keys()),
-        jnp.zeros((2, 256, 768), dtype=jnp.float32),
+        jnp.zeros((2, image_sequence_length, image_patch_dim), dtype=jnp.float32),
         deterministic=False
     )
 
@@ -235,7 +239,7 @@ def main(argv):
         del tokenizer_params, backbone_params
     else:
         emb_dim = MaskedAutoencoder.get_default_config(FLAGS.mae).emb_dim
-        dummy_input = jnp.zeros((2, 257, emb_dim), dtype=jnp.float32)
+        dummy_input = jnp.zeros((2, image_sequence_length + 1, emb_dim), dtype=jnp.float32)
         variables = model.init(next_rng(), dummy_input)
         params, batch_stats = variables["params"], variables["batch_stats"]
         state = LinearCLSTrainState.create(
