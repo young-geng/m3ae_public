@@ -40,6 +40,7 @@ FLAGS_DEF = define_flags_with_default(
     seed=42,
     epochs=90,
     batch_size=2,
+    patch_size=16,
     discretized_image=False,
     image_tokenizer_type='maskgit',
     global_pool=False,
@@ -76,7 +77,7 @@ def create_train_step(model, mixup_cutmix_fn, xe_loss_fn):
         rng_generator = JaxRNG(rng)
         def loss_fn(params):
             augmented_image, augmented_label = mixup_cutmix_fn(image, label, rng)
-            image_patches =  extract_patches(augmented_image, 16)
+            image_patches =  extract_patches(augmented_image, patch_size)
             logits = model.apply(
                 params, image_patches, deterministic=False,
                 rngs=rng_generator(keys=model.rng_keys())
@@ -95,7 +96,7 @@ def create_train_step(model, mixup_cutmix_fn, xe_loss_fn):
     def eval_step_fn(state, rng, image, label):
         rng_generator = JaxRNG(rng)
 
-        image_patches= extract_patches(image, 16)
+        image_patches= extract_patches(image, patch_size)
         logits = model.apply(
             state.params, image_patches, deterministic=True,
             rngs=JaxRNG(rng)(keys=model.rng_keys())
@@ -138,6 +139,9 @@ def main(argv):
     train_dataset = ImageNetDataset(FLAGS.train_data, jax_process_index / jax_process_count)
     val_dataset = ImageNetDataset(FLAGS.val_data, jax_process_index / jax_process_count)
 
+    image_patch_dim = FLAGS.patch_size * FLAGS.patch_size * 3
+    image_sequence_length = (train_dataset.config.image_size // FLAGS.patch_size) ** 2
+
     steps_per_epoch = int(len(train_dataset) / FLAGS.batch_size)
     total_steps = steps_per_epoch * FLAGS.epochs
     val_steps = int(len(val_dataset) / FLAGS.batch_size)
@@ -171,7 +175,7 @@ def main(argv):
         tokenizer_params, encode_image, decode_image, image_vocab_size = (
             None, None, None, -1
         )
-        image_output_dim = 768
+        image_output_dim = image_patch_dim
 
     model = ViTClassifier(
         base_model=MaskedAutoencoder(
@@ -184,7 +188,7 @@ def main(argv):
 
     params = model.init(
         next_rng(model.rng_keys()),
-        jnp.zeros((2, 256, 768), dtype=jnp.float32),
+        jnp.zeros((2, image_sequence_length, image_patch_dim), dtype=jnp.float32),
         deterministic=False
     )
     params = flax.core.unfreeze(params)
