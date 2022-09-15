@@ -48,7 +48,7 @@ class WandBLogger(object):
         config.experiment_id = config_dict.placeholder(str)
         config.anonymous = config_dict.placeholder(str)
         config.notes = config_dict.placeholder(str)
-        config.entity = "m3ae"
+        config.entity = config_dict.placeholder(str)
         config.prefix_to_id = False
 
         if updates is not None:
