@@ -153,7 +153,7 @@ stored in field `train_labels` and `val_labels`. For unpaired text only dataset,
 the utf-8 encoded text is stored in field `text`.
 
 ## Pre-trained Model Weights
-[Pre-trained model weights can be downloaded here](https://drive.google.com/drive/folders/1I4tD8wA4o0QiHSY-TsER9uq9rzbrokQf?usp=share_link).
+[Pre-trained model weights can be downloaded here](https://www.dropbox.com/scl/fo/hnw0qtdfntl9mxls2xb8g/h?rlkey=vyzg1fm71prznifv6ijjy4t6m&dl=0).
 The M3AE and MAE models here are trained for 50 epochs on the CC12M dataset using
 the hyperparameters specified in the paper.
 
