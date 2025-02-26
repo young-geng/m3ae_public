@@ -157,7 +157,7 @@ the utf-8 encoded text is stored in field `text`.
 The M3AE and MAE models here are trained for 50 epochs on the CC12M dataset using
 the hyperparameters specified in the paper.
 
-For converting the pre-trained Jax weights to PyTorch, please refer to [this colab](https://colab.research.google.com/drive/10r0xpzSIEDVF2IPP6CmvTQdM_aR3IHPZ?usp=sharing).
+For converting the pre-trained Jax weights to PyTorch, please refer to [this colab](https://colab.research.google.com/drive/1L6EiUUSkeTzWtB3_K4fR0evn-SDqKWME).
 
 
 ## Credits
